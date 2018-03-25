@@ -1,12 +1,18 @@
 #version 430 core
 
 //configs (edit scene at line 66)
-#define MAX_DEPTH 3
+#define GAMMA 1.2f
+#define MIN_K 0.01f
+#define MAX_DEPTH 5
 #define RAY_T_MIN 0.0001f
 #define RAY_T_MAX 1.0e30f
+
 #define NONE -1
 #define SPHERE 0
 #define PLANE 1
+
+#define DIFFUSE 0
+#define REFLECTIVE 1
 
 out vec4 color;
 in vec3 ray_dir;
@@ -51,12 +57,14 @@ struct Plane
 {
 	vec3 position, normal;
 	Material material;
+	int mat_type;
 };
 struct Sphere
 {
 	vec3 center;
 	float radius;
 	Material material;
+	int mat_type;
 };
 struct Light
 {
@@ -64,22 +72,27 @@ struct Light
 };
 
 //EDIT SCENE////////
-#define PLANE_NUM 1
+#define PLANE_NUM 6
 #define SPHERE_NUM 2
 #define LIGHT_NUM 2
 const Plane planes[PLANE_NUM] = 
 {
-	{{0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, white_rubber}
+	{{0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, white_rubber, DIFFUSE},
+	{{0.0f, 10.0f, 0.0f}, {0.0f, -1.0f, 0.0f}, white_rubber, DIFFUSE},
+	{{5.0f, 0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, white_rubber, DIFFUSE},
+	{{-5.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, white_rubber, DIFFUSE},
+	{{0.0f, 0.0f, 5.0f}, {0.0f, 0.0f, -1.0f}, red_plastic, REFLECTIVE},
+	{{0.0f, 0.0f, -5.0f}, {0.0f, 0.0f, 1.0f}, cyan_plastic, REFLECTIVE}
 };
 const Sphere spheres[SPHERE_NUM] = 
 {
-	{{0.0f, 2.0f, -2.0f}, 2.0f, gold},
-	{{0.0f, 1.5f, 2.0f}, 1.5f, copper}
+	{{2.0f, 2.0f, -2.0f}, 2.0f, gold, REFLECTIVE},
+	{{2.0f, 1.5f, 2.0f}, 1.5f, copper, REFLECTIVE}
 };
 const Light lights[LIGHT_NUM] =
 {
-	{{0.0f, 5.0f, 0.0f}, {1.0f, 1.0f, 1.0f}},
-	{{3.0f, 5.0f, 0.0f}, {0.5f, 0.5f, 0.5f}}
+	{{0.0f, 5.0f, 0.0f}, {0.5f, 0.5f, 0.5f}},
+	{{3.0f, 5.0f, 0.0f}, {0.2f, 0.2f, 0.2f}}
 };
 ////////////////////
 
@@ -166,16 +179,19 @@ TraceReturnStruct trace(const Ray ray)
 	if(type != NONE) //intersected
 	{
 		Material mat;
+		int mat_type;
 		vec3 normal, p = ray.origin + ray.direction * t;
 		if(type == PLANE)
 		{
 			normal = planes[id].normal;
 			mat = planes[id].material;
+			mat_type = planes[id].mat_type;
 		}
 		else if(type == SPHERE)
 		{
 			normal = normalize(p - spheres[id].center);
 			mat = spheres[id].material;
+			mat_type = spheres[id].mat_type;
 		}
 
 		for(int i = 0; i < LIGHT_NUM; ++i)
@@ -207,7 +223,7 @@ TraceReturnStruct trace(const Ray ray)
 			}
 		}
 
-		if(mat.shininess > 0.0f)//reflect
+		if(mat_type == REFLECTIVE && mat.shininess > 0.0f)//reflect
 		{
 			ret.terminate = false;
 			ret.shininess = mat.shininess; //set shininess
@@ -228,9 +244,10 @@ void main()
 	{
 		ret = trace(ret.ray);
 		color3 += ret.color * k;
-		if(ret.terminate)
-			break;
 		k *= ret.shininess;
+		if(ret.terminate || k < MIN_K)
+			break;
 	}
+	color3 = pow(color3, vec3(1.0f / GAMMA));
 	color = vec4(color3, 1.0f);
 }

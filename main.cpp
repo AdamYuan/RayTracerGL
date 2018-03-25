@@ -212,7 +212,7 @@ class Application
 		}
 
 	public:
-		explicit Application() : cam_({-15.0f, 2.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, 0.3926990817f), width_(WIDTH), height_(HEIGHT), control_(true)
+		explicit Application() : cam_({0.0f, 5.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, 0.3926990817f), width_(WIDTH), height_(HEIGHT), control_(true)
 		{
 			init_glfw();
 			init_buffers();
