@@ -144,7 +144,7 @@ TraceReturnStruct trace(const Ray ray)
 			}
 		}
 		else
-			ret.color = mat.diffuse * dot(normal, ray.direction);
+			ret.color = mat.diffuse * dot(normal, -ray.direction);
 	}
 
 	return ret;
